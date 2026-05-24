@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriSense 数据模拟器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-color: #f5f5f5;
+            --card-bg: #ffffff;
+            --primary-green: #4caf50;
+            --primary-dark: #388e3c;
+            --text-dark: #333;
+            --text-gray: #666;
+            --border-color: #e0e0e0;
+            --success-color: #4caf50;
+            --error-color: #f44336;
+            --warning-color: #ff9800;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-dark);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: var(--primary-dark);
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+        
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .status-badge.stopped {
+            background: #f5f5f5;
+            color: var(--text-gray);
+        }
+        
+        .status-badge.running {
+            background: #e8f5e9;
+            color: var(--primary-dark);
+        }
+        
+        .status-badge .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        
+        .status-badge.running .dot {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--primary-green);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-secondary {
+            background: #e0e0e0;
+            color: var(--text-dark);
+        }
+        
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        
+        .btn-danger {
+            background: var(--error-color);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+        
+        .param-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .param-group label {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            margin-bottom: 6px;
+        }
+        
+        .param-group input {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .param-group input:focus {
+            outline: none;
+            border-color: var(--primary-green);
+        }
+        
+        .records-list {
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        
+        .record-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        
+        .record-table th,
+        .record-table td {
+            padding: 10px 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .record-table th {
+            background: #fafafa;
+            font-weight: 600;
+            color: var(--text-gray);
+            position: sticky;
+            top: 0;
+        }
+        
+        .record-table td {
+            font-family: 'Courier New', monospace;
+        }
+        
+        .record-table tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .empty-records {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-gray);
+        }
+        
+        .feedback {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .feedback.success {
+            background: #e8f5e9;
+            color: var(--primary-dark);
+            border: 1px solid #c8e6c9;
+        }
+        
+        .feedback.error {
+            background: #ffebee;
+            color: var(--error-color);
+            border: 1px solid #ffcdd2;
+        }
+        
+        .feedback.hidden {
+            display: none;
+        }
+        
+        .inline-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .inline-group .param-group {
+            flex: 1;
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+            
+            .card {
+                padding: 16px;
+            }
+            
+            .params-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .control-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .record-table {
+                font-size: 0.75rem;
+            }
+            
+            .record-table th,
+            .record-table td {
+                padding: 8px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AgriSense 数据模拟器</h1>
+            <p>模拟农业物联网设备发送传感器数据</p>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">控制面板</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <div id="statusBadge" class="status-badge stopped">
+                    <span class="dot"></span>
+                    <span id="statusText">已停止</span>
+                </div>
+                <div class="control-buttons">
+                    <button id="btnStart" class="btn btn-primary" onclick="startSimulation()">
+                        启动模拟
+                    </button>
+                    <button id="btnStop" class="btn btn-secondary" onclick="stopSimulation()" disabled>
+                        停止模拟
+                    </button>
+                    <button id="btnSend" class="btn btn-secondary" onclick="sendOnce()">
+                        发送一次
+                    </button>
+                </div>
+            </div>
+            <div id="feedback" class="feedback hidden"></div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">参数设置</div>
+            <div class="params-grid">
+                <div class="param-group">
+                    <label>温度最小值 (°C)</label>
+                    <input type="number" id="tempMin" value="15.0" step="0.1">
+                </div>
+                <div class="param-group">
+                    <label>温度最大值 (°C)</label>
+                    <input type="number" id="tempMax" value="35.0" step="0.1">
+                </div>
+                <div class="param-group">
+                    <label>湿度最小值 (%)</label>
+                    <input type="number" id="humidMin" value="40.0" step="0.1">
+                </div>
+                <div class="param-group">
+                    <label>湿度最大值 (%)</label>
+                    <input type="number" id="humidMax" value="85.0" step="0.1">
+                </div>
+            </div>
+            <div style="margin-top: 16px;">
+                <div class="param-group">
+                    <label>发送间隔 (秒)</label>
+                    <input type="number" id="interval" value="5" min="1" max="60">
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">
+                <span>数据记录</span>
+                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem; float: right;" onclick="clearRecords()">
+                    清空记录
+                </button>
+            </div>
+            <div id="recordsList" class="records-list">
+                <div class="empty-records">暂无发送记录</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api/sensor';
+        
+        let timer = null;
+        let records = [];
+        const MAX_RECORDS = 10;
+        
+        function getParams() {
+            return {
+                tempMin: parseFloat(document.getElementById('tempMin').value) || 15.0,
+                tempMax: parseFloat(document.getElementById('tempMax').value) || 35.0,
+                humidMin: parseFloat(document.getElementById('humidMin').value) || 40.0,
+                humidMax: parseFloat(document.getElementById('humidMax').value) || 85.0,
+                interval: parseInt(document.getElementById('interval').value) || 5
+            };
+        }
+        
+        function randomInRange(min, max) {
+            return (Math.random() * (max - min) + min).toFixed(1);
+        }
+        
+        function formatTime() {
+            const now = new Date();
+            return now.toLocaleString('zh-CN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+        
+        function updateStatus(running) {
+            const badge = document.getElementById('statusBadge');
+            const statusText = document.getElementById('statusText');
+            const btnStart = document.getElementById('btnStart');
+            const btnStop = document.getElementById('btnStop');
+            
+            if (running) {
+                badge.className = 'status-badge running';
+                statusText.textContent = '运行中';
+                btnStart.disabled = true;
+                btnStop.disabled = false;
+            } else {
+                badge.className = 'status-badge stopped';
+                statusText.textContent = '已停止';
+                btnStart.disabled = false;
+                btnStop.disabled = true;
+            }
+        }
+        
+        function showFeedback(success, message) {
+            const feedback = document.getElementById('feedback');
+            feedback.className = 'feedback ' + (success ? 'success' : 'error');
+            feedback.innerHTML = success 
+                ? '<span>✓</span> ' + message
+                : '<span>✗</span> ' + message;
+        }
+        
+        function hideFeedback() {
+            document.getElementById('feedback').className = 'feedback hidden';
+        }
+        
+        function addRecord(data) {
+            records.unshift(data);
+            if (records.length > MAX_RECORDS) {
+                records.pop();
+            }
+            renderRecords();
+        }
+        
+        function renderRecords() {
+            const list = document.getElementById('recordsList');
+            
+            if (records.length === 0) {
+                list.innerHTML = '<div class="empty-records">暂无发送记录</div>';
+                return;
+            }
+            
+            const table = document.createElement('table');
+            table.className = 'record-table';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>温度 (°C)</th>
+                        <th>湿度 (%)</th>
+                        <th>ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${records.map(r => `
+                        <tr>
+                            <td>${r.time}</td>
+                            <td>${r.temperature}</td>
+                            <td>${r.humidity}</td>
+                            <td>${r.id || '-'}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+            
+            list.innerHTML = '';
+            list.appendChild(table);
+        }
+        
+        function clearRecords() {
+            if (records.length === 0) return;
+            if (confirm('确定要清空所有记录吗？')) {
+                records = [];
+                renderRecords();
+            }
+        }
+        
+        async function sendData() {
+            const params = getParams();
+            const data = {
+                temperature: parseFloat(randomInRange(params.tempMin, params.tempMax)),
+                humidity: parseFloat(randomInRange(params.humidMin, params.humidMax))
+            };
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                addRecord({
+                    time: formatTime(),
+                    temperature: data.temperature.toFixed(1),
+                    humidity: data.humidity.toFixed(1),
+                    id: result.id
+                });
+                
+                showFeedback(true, `发送成功 | 温度: ${data.temperature.toFixed(1)}°C, 湿度: ${data.humidity.toFixed(1)}%`);
+                
+            } catch (error) {
+                showFeedback(false, `发送失败: ${error.message}`);
+                stopSimulation();
+                throw error;
+            }
+        }
+        
+        async function sendOnce() {
+            hideFeedback();
+            try {
+                await sendData();
+            } catch (e) {
+                // Error already shown in sendData
+            }
+        }
+        
+        function startSimulation() {
+            hideFeedback();
+            updateStatus(true);
+            
+            const params = getParams();
+            sendData();
+            
+            timer = setInterval(() => {
+                sendData();
+            }, params.interval * 1000);
+        }
+        
+        function stopSimulation() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+            updateStatus(false);
+        }
+        
+        renderRecords();
+    </script>
+</body>
+</html>

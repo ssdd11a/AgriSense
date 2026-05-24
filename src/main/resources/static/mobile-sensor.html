@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriSense - 手机传感器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #2e7d32;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #4caf50;
+            font-size: 14px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #4caf50;
+            box-shadow: 0 0 0 3px rgba(76,175,80,0.1);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .input-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76,175,80,0.3);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-auto {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            margin-top: 12px;
+        }
+
+        .btn-auto.active {
+            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+        }
+
+        .status {
+            text-align: center;
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            display: block;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            display: block;
+        }
+
+        .status.loading {
+            background: #fff3e0;
+            color: #e65100;
+            display: block;
+        }
+
+        .log-container {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .log-item {
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .log-item.success {
+            border-left: 4px solid #4caf50;
+        }
+
+        .log-item.error {
+            border-left: 4px solid #f44336;
+        }
+
+        .log-time {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .presets {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .preset-btn {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            border-color: #4caf50;
+            background: #e8f5e9;
+        }
+
+        .device-info {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 13px;
+        }
+
+        .device-info span {
+            font-weight: 600;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌱 AgriSense</h1>
+            <p>手机传感器数据发送</p>
+        </div>
+
+        <div class="card">
+            <div class="form-group">
+                <label for="deviceId">设备ID</label>
+                <input type="text" id="deviceId" value="mobile-001" placeholder="输入设备ID">
+            </div>
+
+            <div class="input-row">
+                <div class="form-group">
+                    <label for="temperature">温度 (°C)</label>
+                    <input type="number" id="temperature" step="0.1" value="25.0" placeholder="温度">
+                </div>
+                <div class="form-group">
+                    <label for="humidity">湿度 (%)</label>
+                    <input type="number" id="humidity" step="0.1" value="60.0" placeholder="湿度">
+                </div>
+            </div>
+
+            <div class="presets">
+                <button class="preset-btn" onclick="setPreset(20, 50)">🌿 正常</button>
+                <button class="preset-btn" onclick="setPreset(35, 85)">🔥 高温</button>
+                <button class="preset-btn" onclick="setPreset(10, 40)">❄️ 低温</button>
+                <button class="preset-btn" onclick="setPreset(28, 90)">💧 高湿</button>
+            </div>
+
+            <button class="btn btn-primary" onclick="sendData()">📡 发送数据</button>
+            
+            <button class="btn btn-auto" id="autoBtn" onclick="toggleAuto()">⏸️ 自动发送已关闭</button>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="card">
+            <label style="display: block; margin-bottom: 12px; font-weight: 500;">📋 发送日志</label>
+            <div class="log-container" id="logContainer"></div>
+            <button class="btn btn-secondary" style="margin-top: 12px;" onclick="clearLogs()">清空日志</button>
+        </div>
+
+        <div class="card" style="background: #fff9e6;">
+            <label style="display: block; margin-bottom: 12px; font-weight: 500; color: #f57c00;">🔍 调试信息</label>
+            <div id="debugInfo" style="font-family: monospace; font-size: 12px; background: #263238; color: #aed581; padding: 12px; border-radius: 8px; max-height: 200px; overflow-y: auto;">等待调试信息...</div>
+            <button class="btn btn-secondary" style="margin-top: 12px;" onclick="clearDebug()">清空调试</button>
+        </div>
+
+        <div class="card">
+            <label style="display: block; margin-bottom: 12px; font-weight: 500;">💡 使用提示</label>
+            <ul style="font-size: 13px; color: #666; line-height: 1.8;">
+                <li>确保手机和后端在同一局域网，或后端在公网可访问</li>
+                <li>设备ID可以自定义，首次发送会自动创建设备</li>
+                <li>自动发送每5秒发送一次随机数据</li>
+                <li>使用预设按钮可以快速测试不同场景</li>
+            </ul>
+            <div class="device-info">
+                后端地址: <span id="apiUrl"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            autoSend: false,
+            autoInterval: null,
+            logs: [],
+            debugLogs: []
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const apiUrl = `${window.location.protocol}//${window.location.host}/api/sensor`;
+            document.getElementById('apiUrl').textContent = apiUrl;
+            loadLogs();
+            addDebug('页面加载完成');
+            addDebug('浏览器: ' + navigator.userAgent.substring(0, 50));
+            addDebug('API地址: ' + apiUrl);
+        });
+
+        function addDebug(message) {
+            const time = new Date().toLocaleTimeString();
+            state.debugLogs.unshift(`[${time}] ${message}`);
+            if (state.debugLogs.length > 30) state.debugLogs.pop();
+            renderDebug();
+        }
+
+        function renderDebug() {
+            const container = document.getElementById('debugInfo');
+            container.innerHTML = state.debugLogs.join('<br>');
+        }
+
+        function clearDebug() {
+            state.debugLogs = [];
+            document.getElementById('debugInfo').innerHTML = '等待调试信息...';
+        }
+
+        function setPreset(temp, hum) {
+            document.getElementById('temperature').value = temp;
+            document.getElementById('humidity').value = hum;
+            addDebug('设置预设: ' + temp + '°C, ' + hum + '%');
+        }
+
+        async function sendData() {
+            const deviceId = document.getElementById('deviceId').value || 'mobile-001';
+            const temperature = parseFloat(document.getElementById('temperature').value);
+            const humidity = parseFloat(document.getElementById('humidity').value);
+
+            addDebug('准备发送数据...');
+            addDebug('设备ID: ' + deviceId);
+            addDebug('温度: ' + temperature + ', 湿度: ' + humidity);
+
+            if (isNaN(temperature) || isNaN(humidity)) {
+                addDebug('错误: 无效的数值');
+                showStatus('请输入有效的温度和湿度', 'error');
+                return;
+            }
+
+            const status = document.getElementById('status');
+            status.textContent = '发送中...';
+            status.className = 'status loading';
+
+            const payload = {
+                deviceId: deviceId,
+                temperature: temperature,
+                humidity: humidity
+            };
+
+            addDebug('发送请求: ' + JSON.stringify(payload));
+            addDebug('请求URL: ' + window.location.origin + '/api/sensor');
+
+            console.log('发送请求:', payload);
+            console.log('请求URL:', window.location.origin + '/api/sensor');
+
+            try {
+                addDebug('开始连接...');
+                const response = await fetch('/api/sensor', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                addDebug('收到响应，状态: ' + response.status);
+                console.log('响应状态:', response.status);
+                
+                const responseText = await response.text();
+                addDebug('响应内容: ' + responseText.substring(0, 200));
+                console.log('响应内容:', responseText);
+
+                if (response.ok) {
+                    try {
+                        const data = JSON.parse(responseText);
+                        addDebug('解析成功');
+                        showStatus(`发送成功！ID: ${data.id}, 温度: ${data.temperature}°C, 湿度: ${data.humidity}%`, 'success');
+                        addLog('success', `设备 ${deviceId}: ${temperature}°C, ${humidity}%`);
+                    } catch (jsonErr) {
+                        addDebug('JSON解析失败: ' + jsonErr.message);
+                        showStatus(`响应解析失败: ${responseText}`, 'error');
+                        addLog('error', `响应解析失败`);
+                    }
+                } else {
+                    addDebug('请求失败');
+                    showStatus(`发送失败 (${response.status}): ${responseText}`, 'error');
+                    addLog('error', `发送失败: ${response.status} - ${responseText}`);
+                }
+            } catch (error) {
+                addDebug('网络错误: ' + error.message);
+                console.error('网络错误:', error);
+                showStatus(`网络错误: ${error.message}`, 'error');
+                addLog('error', `网络错误: ${error.message}`);
+            }
+        }
+
+        function toggleAuto() {
+            state.autoSend = !state.autoSend;
+            const btn = document.getElementById('autoBtn');
+
+            if (state.autoSend) {
+                btn.textContent = '▶️ 自动发送已开启 (5秒)';
+                btn.classList.add('active');
+                sendRandomData();
+                state.autoInterval = setInterval(sendRandomData, 5000);
+            } else {
+                btn.textContent = '⏸️ 自动发送已关闭';
+                btn.classList.remove('active');
+                clearInterval(state.autoInterval);
+            }
+        }
+
+        function sendRandomData() {
+            const temp = (20 + Math.random() * 15).toFixed(1);
+            const hum = (40 + Math.random() * 50).toFixed(1);
+            document.getElementById('temperature').value = temp;
+            document.getElementById('humidity').value = hum;
+            sendData();
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 4000);
+            }
+        }
+
+        function addLog(type, message) {
+            const now = new Date().toLocaleTimeString();
+            state.logs.unshift({ time: now, type, message });
+            if (state.logs.length > 20) state.logs.pop();
+            renderLogs();
+            saveLogs();
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('logContainer');
+            if (state.logs.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">暂无日志</p>';
+                return;
+            }
+            container.innerHTML = state.logs.map(log => `
+                <div class="log-item ${log.type}">
+                    <div class="log-time">${log.time}</div>
+                    <div>${log.message}</div>
+                </div>
+            `).join('');
+        }
+
+        function saveLogs() {
+            localStorage.setItem('agrisense-mobile-logs', JSON.stringify(state.logs));
+        }
+
+        function loadLogs() {
+            try {
+                const saved = localStorage.getItem('agrisense-mobile-logs');
+                if (saved) {
+                    state.logs = JSON.parse(saved);
+                    renderLogs();
+                }
+            } catch (e) {
+                console.log('加载日志失败');
+            }
+        }
+
+        function clearLogs() {
+            state.logs = [];
+            saveLogs();
+            renderLogs();
+        }
+    </script>
+</body>
+</html>

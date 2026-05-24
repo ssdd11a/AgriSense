@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriSense 智慧农业系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            min-height: 100vh;
+            color: #2e7d32;
+        }
+        header {
+            background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        header h1 {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+        }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        .card h3 {
+            color: #558b2f;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .value-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1b5e20;
+        }
+        .value-display.warning {
+            color: #c62828;
+        }
+        .unit {
+            font-size: 1rem;
+            color: #666;
+            margin-left: 0.25rem;
+        }
+        .threshold-bar {
+            margin-top: 1rem;
+            height: 12px;
+            background: #e0e0e0;
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+        .threshold-zone {
+            position: absolute;
+            height: 100%;
+        }
+        .zone-low {
+            background: #ffebee;
+        }
+        .zone-optimal {
+            background: #c8e6c9;
+        }
+        .zone-high {
+            background: #fff3e0;
+        }
+        .current-marker {
+            position: absolute;
+            width: 16px;
+            height: 20px;
+            background: #4caf50;
+            border-radius: 50%;
+            top: -4px;
+            transform: translateX(-50%);
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .current-marker.warning {
+            background: #f44336;
+        }
+        .advice-card {
+            background: linear-gradient(135deg, #fff9c4 0%, #fff8e1 100%);
+            border-left: 4px solid #ffc107;
+        }
+        .btn {
+            background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #78909c 0%, #546e7a 100%);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ef5350 0%, #c62828 100%);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 1.5rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #43a047;
+            color: white;
+        }
+        tr:hover {
+            background: #f5f5f5;
+        }
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .nav-btn {
+            padding: 0.75rem 1.25rem;
+            border: none;
+            background: white;
+            color: #2e7d32;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .nav-btn:hover {
+            background: #e8f5e9;
+        }
+        .nav-btn.active {
+            background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+            color: white;
+        }
+        .settings-group {
+            margin-bottom: 1.5rem;
+        }
+        .settings-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #33691e;
+            font-weight: 600;
+        }
+        .input-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .input-field {
+            flex: 1;
+            min-width: 150px;
+        }
+        .input-field input, .input-field select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 2px solid #c8e6c9;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        .input-field input:focus, .input-field select:focus {
+            outline: none;
+            border-color: #43a047;
+        }
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .toggle {
+            width: 50px;
+            height: 26px;
+            background: #ccc;
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .toggle.active {
+            background: #43a047;
+        }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s;
+        }
+        .toggle.active::after {
+            left: 26px;
+        }
+        .prompt-box {
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+        }
+        .status-badge.online {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .status-badge.offline {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .status-badge.pulse {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .modal-header h2 {
+            color: #2e7d32;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+        .device-card, .crop-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+        }
+        .device-card:hover, .crop-card:hover {
+            border-color: #43a047;
+            box-shadow: 0 4px 12px rgba(67, 160, 71, 0.15);
+        }
+        .device-header, .crop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+        .device-name, .crop-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #2e7d32;
+        }
+        .device-actions, .crop-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            color: #666;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+        .icon-btn:hover {
+            background: #f0f0f0;
+            color: #43a047;
+        }
+        .icon-btn.danger:hover {
+            color: #c62828;
+        }
+        .stage-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            background: #fafafa;
+        }
+        .stage-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #999;
+        }
+        .device-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .device-chip {
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+        }
+        .device-chip:hover {
+            border-color: #c8e6c9;
+        }
+        .device-chip.active {
+            background: #e8f5e9;
+            border-color: #43a047;
+            font-weight: 600;
+        }
+        @media (max-width: 768px) {
+            header {
+                padding: 1rem;
+            }
+            .cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><i class="fas fa-seedling"></i> AgriSense 智慧农业系统</h1>
+    </header>
+
+    <main>
+        <div class="nav-tabs">
+            <button class="nav-btn active" data-view="dashboard">
+                <i class="fas fa-gauge-high"></i> 仪表盘
+            </button>
+            <button class="nav-btn" data-view="history">
+                <i class="fas fa-chart-line"></i> 历史数据
+            </button>
+            <button class="nav-btn" data-view="devices">
+                <i class="fas fa-hdd"></i> 设备管理
+            </button>
+            <button class="nav-btn" data-view="crops">
+                <i class="fas fa-leaf"></i> 作物管理
+            </button>
+            <button class="nav-btn" data-view="settings">
+                <i class="fas fa-cog"></i> 设置
+            </button>
+        </div>
+
+        <!-- Dashboard View -->
+        <div id="view-dashboard" class="view active">
+            <div class="device-selector" id="deviceSelector"></div>
+            <div class="cards">
+                <div class="card">
+                    <h3><i class="fas fa-temperature-half"></i> 温度</h3>
+                    <div class="value-display" id="tempValue">--</div>
+                    <div class="threshold-bar">
+                        <div class="threshold-zone zone-low" id="tempLowZone"></div>
+                        <div class="threshold-zone zone-optimal" id="tempOptimalZone"></div>
+                        <div class="threshold-zone zone-high" id="tempHighZone"></div>
+                        <div class="current-marker" id="tempMarker"></div>
+                    </div>
+                    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;">
+                        范围: <span id="tempRange">--</span> | 最适: <span id="tempOptimal">--</span>
+                    </p>
+                </div>
+                <div class="card">
+                    <h3><i class="fas fa-droplet"></i> 湿度</h3>
+                    <div class="value-display" id="humidityValue">--</div>
+                    <div class="threshold-bar">
+                        <div class="threshold-zone zone-low" id="humidityLowZone"></div>
+                        <div class="threshold-zone zone-optimal" id="humidityOptimalZone"></div>
+                        <div class="threshold-zone zone-high" id="humidityHighZone"></div>
+                        <div class="current-marker" id="humidityMarker"></div>
+                    </div>
+                    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;">
+                        范围: <span id="humidityRange">--</span> | 最适: <span id="humidityOptimal">--</span>
+                    </p>
+                </div>
+                <div class="card">
+                    <h3><i class="fas fa-clock"></i> 最后更新</h3>
+                    <div class="value-display" style="font-size: 1.25rem;" id="lastUpdate">--</div>
+                    <p style="margin-top: 0.75rem;">
+                        <span class="status-badge" id="statusBadge">
+                            <i class="fas fa-circle"></i> 离线
+                        </span>
+                    </p>
+                    <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;" id="cropInfo">
+                        作物: -- | 阶段: --
+                    </p>
+                </div>
+            </div>
+            <div class="card advice-card">
+                <h3><i class="fas fa-lightbulb"></i> AI 建议</h3>
+                <p id="advice" style="line-height: 1.6; white-space: pre-line;">正在加载...</p>
+                <p style="margin-top: 1rem;">
+                    <button class="btn" id="refreshBtn">
+                        <i class="fas fa-rotate"></i> 刷新
+                    </button>
+                </p>
+            </div>
+        </div>
+
+        <!-- History View -->
+        <div id="view-history" class="view">
+            <div class="card" style="margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <h3><i class="fas fa-chart-line"></i> 历史趋势</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-secondary" id="clearHistoryBtn">
+                            <i class="fas fa-trash"></i> 清除当前设备历史
+                        </button>
+                        <button class="btn" id="exportCsvBtn">
+                            <i class="fas fa-download"></i> 导出 CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="device-selector" id="historyDeviceSelector"></div>
+            <div class="card">
+                <div class="chart-container">
+                    <canvas id="historyChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3 style="margin-bottom: 1rem;"><i class="fas fa-table"></i> 历史记录</h3>
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>设备</th>
+                            <th>温度 (°C)</th>
+                            <th>湿度 (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Devices View -->
+        <div id="view-devices" class="view">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3><i class="fas fa-hdd"></i> 设备列表</h3>
+                    <button class="btn" id="addDeviceBtn">
+                        <i class="fas fa-plus"></i> 添加设备
+                    </button>
+                </div>
+                <div id="devicesList"></div>
+            </div>
+        </div>
+
+        <!-- Crops View -->
+        <div id="view-crops" class="view">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3><i class="fas fa-leaf"></i> 作物列表</h3>
+                    <button class="btn" id="addCropBtn">
+                        <i class="fas fa-plus"></i> 添加作物
+                    </button>
+                </div>
+                <div id="cropsList"></div>
+            </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="view-settings" class="view">
+            <div class="card">
+                <h3 style="margin-bottom: 1.5rem;"><i class="fas fa-cog"></i> 系统设置</h3>
+                <div class="settings-group">
+                    <label><i class="fas fa-bell"></i> 自动刷新</label>
+                    <div class="toggle-group">
+                        <div class="toggle" id="autoRefreshToggle"></div>
+                        <span id="autoRefreshStatus">已关闭</span>
+                        <span style="color: #666; margin-left: 0.5rem;">(每10秒)</span>
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <label><i class="fas fa-seedling"></i> AI 系统提示词</label>
+                    <div class="prompt-box" id="systemPrompt">你是农业专家，根据温湿度给出大棚管理建议，注意病害预防。</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Device Modal -->
+    <div class="modal" id="deviceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="deviceModalTitle">添加设备</h2>
+                <button class="close-btn" id="closeDeviceModal">&times;</button>
+            </div>
+            <form id="deviceForm">
+                <div class="settings-group">
+                    <label>设备名称 *</label>
+                    <div class="input-field">
+                        <input type="text" id="deviceName" required>
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <label>位置</label>
+                    <div class="input-field">
+                        <input type="text" id="deviceLocation">
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <label>种植作物</label>
+                    <div class="input-field">
+                        <select id="deviceCropId"></select>
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <label>生长阶段</label>
+                    <div class="input-field">
+                        <select id="deviceGrowthStage"></select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-secondary" id="cancelDeviceBtn">取消</button>
+                    <button type="submit" class="btn">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Crop Modal -->
+    <div class="modal" id="cropModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="cropModalTitle">添加作物</h2>
+                <button class="close-btn" id="closeCropModal">&times;</button>
+            </div>
+            <form id="cropForm">
+                <div class="settings-group">
+                    <label>作物名称 *</label>
+                    <div class="input-field">
+                        <input type="text" id="cropName" required>
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <label>图标</label>
+                    <div class="input-field">
+                        <input type="text" id="cropIcon" placeholder="如: 🍅">
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <label>描述</label>
+                    <div class="input-field">
+                        <input type="text" id="cropDescription">
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <label>特殊注意事项</label>
+                    <div class="input-field">
+                        <input type="text" id="cropSpecialNotes">
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <label>
+                        生长阶段
+                        <button type="button" class="btn btn-secondary" id="addStageBtn" style="padding: 0.25rem 0.5rem; font-size: 0.85rem; margin-left: 0.5rem;">
+                            <i class="fas fa-plus"></i> 添加阶段
+                        </button>
+                    </label>
+                    <div id="stagesContainer"></div>
+                </div>
+                <div class="settings-group">
+                    <label>
+                        <input type="checkbox" id="cropIsDefault">
+                        设为默认作物
+                    </label>
+                </div>
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-secondary" id="cancelCropBtn">取消</button>
+                    <button type="submit" class="btn">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            currentView: 'dashboard',
+            currentDeviceId: "1",
+            autoRefresh: false,
+            autoRefreshInterval: null,
+            historyDataByDevice: {}, // 按设备ID存储历史数据
+            devices: [],
+            crops: [],
+            sensorData: null,
+            thresholds: {
+                minTemp: 10,
+                maxTemp: 35,
+                optimalTempMin: 18,
+                optimalTempMax: 28,
+                minHumidity: 40,
+                maxHumidity: 90,
+                optimalHumidityMin: 60,
+                optimalHumidityMax: 80
+            }
+        };
+
+        const historyDataKey = 'agrisense_history';
+        const savedHistoryData = JSON.parse(localStorage.getItem(historyDataKey) || '{}');
+        // 数据迁移：如果是旧格式（数组），则转换为新格式
+        if (Array.isArray(savedHistoryData)) {
+            state.historyDataByDevice = {};
+            // 将旧数据迁移到默认设备
+            state.historyDataByDevice[state.currentDeviceId] = savedHistoryData;
+            localStorage.setItem(historyDataKey, JSON.stringify(state.historyDataByDevice));
+        } else {
+            state.historyDataByDevice = savedHistoryData;
+        }
+
+        let historyChart = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            initNavigation();
+            await loadDevices();
+            await loadCrops();
+            await refreshData();
+            await refreshAdvice();
+            initChart();
+            loadSettings();
+        });
+
+        function initNavigation() {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const viewId = btn.dataset.view;
+                    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                    document.getElementById(`view-${viewId}`).classList.add('active');
+                    state.currentView = viewId;
+                    if (viewId === 'devices') renderDevicesList();
+                    if (viewId === 'crops') renderCropsList();
+                    if (viewId === 'history') {
+                        renderHistoryDeviceSelector();
+                        updateChart();
+                    }
+                });
+            });
+
+            document.getElementById('refreshBtn').addEventListener('click', refreshAdvice);
+            document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
+            document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
+
+            const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+            autoRefreshToggle.addEventListener('click', () => {
+                state.autoRefresh = !state.autoRefresh;
+                autoRefreshToggle.classList.toggle('active', state.autoRefresh);
+                document.getElementById('autoRefreshStatus').textContent = state.autoRefresh ? '已开启' : '已关闭';
+                if (state.autoRefresh) {
+                    state.autoRefreshInterval = setInterval(refreshData, 10000);
+                } else {
+                    clearInterval(state.autoRefreshInterval);
+                }
+            });
+
+            document.getElementById('addDeviceBtn').addEventListener('click', () => openDeviceModal());
+            document.getElementById('closeDeviceModal').addEventListener('click', () => closeDeviceModal());
+            document.getElementById('cancelDeviceBtn').addEventListener('click', () => closeDeviceModal());
+            document.getElementById('deviceForm').addEventListener('submit', saveDevice);
+            document.getElementById('deviceCropId').addEventListener('change', updateGrowthStageOptions);
+
+            document.getElementById('addCropBtn').addEventListener('click', () => openCropModal());
+            document.getElementById('closeCropModal').addEventListener('click', () => closeCropModal());
+            document.getElementById('cancelCropBtn').addEventListener('click', () => closeCropModal());
+            document.getElementById('cropForm').addEventListener('submit', saveCrop);
+            document.getElementById('addStageBtn').addEventListener('click', addStageForm);
+        }
+
+        async function loadDevices() {
+            try {
+                const res = await fetch('/api/devices');
+                if (res.ok) {
+                    const text = await res.text();
+                    try {
+                        state.devices = JSON.parse(text);
+                    } catch (parseErr) {
+                        console.error('Failed to parse devices JSON:', parseErr);
+                        state.devices = [];
+                    }
+                    renderDeviceSelector();
+                    renderDevicesList();
+                    populateDeviceCropOptions();
+                } else {
+                    console.error('Failed to load devices, status:', res.status);
+                    state.devices = [];
+                }
+            } catch (e) {
+                console.error('Failed to load devices', e);
+                state.devices = [];
+            }
+        }
+
+        async function loadCrops() {
+            try {
+                const res = await fetch('/api/crops');
+                if (res.ok) {
+                    const text = await res.text();
+                    try {
+                        state.crops = JSON.parse(text);
+                    } catch (parseErr) {
+                        console.error('Failed to parse crops JSON:', parseErr, text.substring(0, 500));
+                        state.crops = [];
+                    }
+                    renderCropsList();
+                    populateDeviceCropOptions();
+                } else {
+                    console.error('Failed to load crops, status:', res.status);
+                    state.crops = [];
+                }
+            } catch (e) {
+                console.error('Failed to load crops', e);
+                state.crops = [];
+            }
+        }
+
+        function renderDeviceSelector() {
+            const container = document.getElementById('deviceSelector');
+            if (state.devices.length === 0) {
+                container.innerHTML = '<div class="device-chip active"><i class="fas fa-hdd"></i> 设备 1</div>';
+                return;
+            }
+            container.innerHTML = state.devices.map(d => `
+                <div class="device-chip ${d.id === state.currentDeviceId ? 'active' : ''}" data-id="${d.id}">
+                    <i class="fas fa-hdd"></i> ${d.name}
+                </div>
+            `).join('');
+            container.querySelectorAll('.device-chip').forEach(chip => {
+                chip.addEventListener('click', async () => {
+                    state.currentDeviceId = chip.dataset.id;
+                    renderDeviceSelector();
+                    renderHistoryDeviceSelector();
+                    await refreshData();
+                    await refreshAdvice();
+                    if (state.currentView === 'history') updateChart();
+                });
+            });
+        }
+
+        function renderHistoryDeviceSelector() {
+            const container = document.getElementById('historyDeviceSelector');
+            if (state.devices.length === 0) {
+                container.innerHTML = '<div class="device-chip active"><i class="fas fa-hdd"></i> 设备 1</div>';
+                return;
+            }
+            container.innerHTML = state.devices.map(d => {
+                const dataCount = (state.historyDataByDevice[d.id] || []).length;
+                return `
+                <div class="device-chip ${d.id === state.currentDeviceId ? 'active' : ''}" data-id="${d.id}">
+                    <i class="fas fa-hdd"></i> ${d.name}
+                    <span style="font-size:0.7rem; background:#e8f5e9; color:#2e7d32; padding:0.1rem 0.5rem; border-radius:10px; margin-left:0.5rem;">${dataCount}条</span>
+                </div>
+            `}).join('');
+            container.querySelectorAll('.device-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    state.currentDeviceId = chip.dataset.id;
+                    renderDeviceSelector();
+                    renderHistoryDeviceSelector();
+                    updateChart();
+                });
+            });
+        }
+
+        async function refreshData() {
+            try {
+                const sensorRes = await fetch(`/api/sensor/latest?deviceId=${state.currentDeviceId}`);
+                if (sensorRes.ok) {
+                    const data = await sensorRes.json();
+                    state.sensorData = data;
+                    updateDashboard(data);
+                    addToHistory(data);
+                    document.getElementById('statusBadge').className = 'status-badge online pulse';
+                    document.getElementById('statusBadge').innerHTML = '<i class="fas fa-circle"></i> 在线';
+                } else {
+                    document.getElementById('statusBadge').className = 'status-badge offline';
+                    document.getElementById('statusBadge').innerHTML = '<i class="fas fa-circle"></i> 无数据';
+                    state.sensorData = null;
+                    updateDashboard({ temperature: '--', humidity: '--', timestamp: new Date().toISOString() });
+                }
+            } catch (e) {
+                document.getElementById('statusBadge').className = 'status-badge offline';
+                document.getElementById('statusBadge').innerHTML = '<i class="fas fa-circle"></i> 离线';
+                state.sensorData = null;
+            }
+
+            updateThresholds();
+        }
+
+        async function refreshAdvice() {
+            const adviceEl = document.getElementById('advice');
+            adviceEl.textContent = '正在获取 AI 建议...';
+            try {
+                const adviceRes = await fetch(`/api/sensor/advice?deviceId=${state.currentDeviceId}`);
+                if (adviceRes.ok) {
+                    const text = await adviceRes.text();
+                    adviceEl.textContent = text;
+                } else {
+                    adviceEl.textContent = 'AI 建议暂不可用';
+                }
+            } catch (e) {
+                adviceEl.textContent = '无法获取 AI 建议。';
+            }
+        }
+
+        async function updateThresholdsAndCropInfo() {
+            // 确保设备和作物数据已加载
+            if (state.devices.length === 0) {
+                await loadDevices();
+            }
+            if (state.crops.length === 0) {
+                await loadCrops();
+            }
+            updateThresholds();
+        }
+
+        function updateThresholds() {
+            let crop = null;
+            let stageName = null;
+            let device = state.devices.find(d => d.id === state.currentDeviceId);
+            if (device && device.cropId) {
+                crop = state.crops.find(c => c.id === device.cropId);
+                stageName = device.growthStage;
+            }
+
+            let thresholds = {
+                minTemp: 10,
+                maxTemp: 35,
+                optimalTempMin: 18,
+                optimalTempMax: 28,
+                minHumidity: 40,
+                maxHumidity: 90,
+                optimalHumidityMin: 60,
+                optimalHumidityMax: 80
+            };
+
+            let cropInfoText = '作物: 通用 | 阶段: 通用';
+            if (crop) {
+                cropInfoText = `作物: ${crop.name || '未知'} ${crop.icon || ''}`;
+                if (crop.stages && crop.stages.length > 0) {
+                    let stage = crop.stages.find(s => s.name === stageName);
+                    if (!stage) stage = crop.stages[0];
+                    if (stage) {
+                        thresholds = {
+                            minTemp: stage.minTemp || 10,
+                            maxTemp: stage.maxTemp || 35,
+                            optimalTempMin: stage.optimalTempMin || 18,
+                            optimalTempMax: stage.optimalTempMax || 28,
+                            minHumidity: stage.minHumidity || 40,
+                            maxHumidity: stage.maxHumidity || 90,
+                            optimalHumidityMin: stage.optimalHumidityMin || 60,
+                            optimalHumidityMax: stage.optimalHumidityMax || 80
+                        };
+                        cropInfoText += ` | 阶段: ${stage.name}`;
+                    }
+                } else {
+                    cropInfoText += ' | 阶段: --';
+                }
+            }
+            state.thresholds = thresholds;
+            document.getElementById('cropInfo').textContent = cropInfoText;
+            updateThresholdBars();
+        }
+
+        function updateDashboard(data) {
+            const { temperature, humidity, timestamp } = data;
+            const t = state.thresholds;
+
+            const tempEl = document.getElementById('tempValue');
+            tempEl.textContent = temperature.toFixed(1) + '°C';
+            tempEl.className = 'value-display' + (temperature < t.minTemp || temperature > t.maxTemp ? ' warning' : '');
+
+            const humidEl = document.getElementById('humidityValue');
+            humidEl.textContent = humidity.toFixed(1) + '%';
+            humidEl.className = 'value-display' + (humidity < t.minHumidity || humidity > t.maxHumidity ? ' warning' : '');
+
+            document.getElementById('lastUpdate').textContent = new Date(timestamp).toLocaleString('zh-CN');
+            updateThresholdBars();
+        }
+
+        function updateThresholdBars() {
+            if (!state.sensorData) return;
+            const t = state.thresholds;
+            const temp = state.sensorData.temperature;
+            const humid = state.sensorData.humidity;
+
+            document.getElementById('tempRange').textContent = `${t.minTemp}-${t.maxTemp}°C`;
+            document.getElementById('tempOptimal').textContent = `${t.optimalTempMin}-${t.optimalTempMax}°C`;
+            document.getElementById('humidityRange').textContent = `${t.minHumidity}-${t.maxHumidity}%`;
+            document.getElementById('humidityOptimal').textContent = `${t.optimalHumidityMin}-${t.optimalHumidityMax}%`;
+
+            const tempScale = t.maxTemp - t.minTemp;
+            const tempLowWidth = ((t.optimalTempMin - t.minTemp) / tempScale) * 100;
+            const tempOptWidth = ((t.optimalTempMax - t.optimalTempMin) / tempScale) * 100;
+            const tempHighWidth = ((t.maxTemp - t.optimalTempMax) / tempScale) * 100;
+            document.getElementById('tempLowZone').style.cssText = `left:0;width:${tempLowWidth}%`;
+            document.getElementById('tempOptimalZone').style.cssText = `left:${tempLowWidth}%;width:${tempOptWidth}%`;
+            document.getElementById('tempHighZone').style.cssText = `left:${tempLowWidth + tempOptWidth}%;width:${tempHighWidth}%`;
+            let tempPos = ((Math.max(t.minTemp, Math.min(t.maxTemp, temp)) - t.minTemp) / tempScale) * 100;
+            document.getElementById('tempMarker').style.left = tempPos + '%';
+            document.getElementById('tempMarker').className = 'current-marker' + (temp < t.minTemp || temp > t.maxTemp ? ' warning' : '');
+
+            const humidScale = t.maxHumidity - t.minHumidity;
+            const humidLowWidth = ((t.optimalHumidityMin - t.minHumidity) / humidScale) * 100;
+            const humidOptWidth = ((t.optimalHumidityMax - t.optimalHumidityMin) / humidScale) * 100;
+            const humidHighWidth = ((t.maxHumidity - t.optimalHumidityMax) / humidScale) * 100;
+            document.getElementById('humidityLowZone').style.cssText = `left:0;width:${humidLowWidth}%`;
+            document.getElementById('humidityOptimalZone').style.cssText = `left:${humidLowWidth}%;width:${humidOptWidth}%`;
+            document.getElementById('humidityHighZone').style.cssText = `left:${humidLowWidth + humidOptWidth}%;width:${humidHighWidth}%`;
+            let humidPos = ((Math.max(t.minHumidity, Math.min(t.maxHumidity, humid)) - t.minHumidity) / humidScale) * 100;
+            document.getElementById('humidityMarker').style.left = humidPos + '%';
+            document.getElementById('humidityMarker').className = 'current-marker' + (humid < t.minHumidity || humid > t.maxHumidity ? ' warning' : '');
+        }
+
+        function addToHistory(data) {
+            const deviceId = data.deviceId || state.currentDeviceId;
+            // 确保 state.historyDataByDevice 是对象
+            if (!state.historyDataByDevice || typeof state.historyDataByDevice !== 'object') {
+                state.historyDataByDevice = {};
+            }
+            // 确保该设备的历史数据数组存在
+            let deviceHistory = state.historyDataByDevice[deviceId];
+            if (!Array.isArray(deviceHistory)) {
+                deviceHistory = [];
+                state.historyDataByDevice[deviceId] = deviceHistory;
+            }
+            // 创建包含deviceId的数据副本
+            const dataWithDeviceId = {
+                ...data,
+                deviceId: deviceId
+            };
+            const exists = deviceHistory.some(d => d.timestamp === data.timestamp);
+            if (!exists) {
+                deviceHistory.unshift(dataWithDeviceId);
+                if (deviceHistory.length > 50) deviceHistory.pop();
+                localStorage.setItem(historyDataKey, JSON.stringify(state.historyDataByDevice));
+                if (state.currentView === 'history') {
+                    renderHistoryDeviceSelector();
+                    updateChart();
+                }
+            }
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('historyChart').getContext('2d');
+            historyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: '温度 (°C)',
+                            data: [],
+                            borderColor: '#43a047',
+                            backgroundColor: 'rgba(67, 160, 71, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '湿度 (%)',
+                            data: [],
+                            borderColor: '#2196f3',
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        x: { display: true, title: { display: true, text: '时间' } },
+                        y: { type: 'linear', display: true, position: 'left', title: { display: true, text: '温度 (°C)' } },
+                        y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: '湿度 (%)' }, grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+            updateChart();
+        }
+
+        function updateChart() {
+            // 确保当前设备的数据是数组
+            let deviceHistory = state.historyDataByDevice[state.currentDeviceId];
+            if (!Array.isArray(deviceHistory)) {
+                deviceHistory = [];
+            }
+            const data = deviceHistory.slice().reverse();
+            // 更新图表标题，显示当前设备
+            const deviceName = state.devices.find(d => d.id === state.currentDeviceId)?.name || state.currentDeviceId;
+            historyChart.data.labels = data.map(d => new Date(d.timestamp).toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'}));
+            historyChart.data.datasets[0].data = data.map(d => d.temperature);
+            historyChart.data.datasets[1].data = data.map(d => d.humidity);
+            historyChart.data.datasets[0].label = `温度 (°C) - ${deviceName}`;
+            historyChart.data.datasets[1].label = `湿度 (%) - ${deviceName}`;
+            historyChart.update();
+            const tbody = document.querySelector('#historyTable tbody');
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#999; padding:2rem;">${deviceName}暂无历史数据</td></tr>`;
+            } else {
+                tbody.innerHTML = data.slice().reverse().map(d => {
+                    const recordDeviceName = state.devices.find(dev => dev.id === (d.deviceId || state.currentDeviceId))?.name || (d.deviceId || state.currentDeviceId);
+                    return `
+                    <tr>
+                        <td>${new Date(d.timestamp).toLocaleString('zh-CN')}</td>
+                        <td>${recordDeviceName}</td>
+                        <td>${d.temperature.toFixed(1)}</td>
+                        <td>${d.humidity.toFixed(1)}</td>
+                    </tr>
+                `}).join('');
+            }
+        }
+
+        function clearHistory() {
+            const deviceName = state.devices.find(d => d.id === state.currentDeviceId)?.name || '当前设备';
+            if (confirm(`确定要清除 ${deviceName} 的本地历史数据吗？`)) {
+                delete state.historyDataByDevice[state.currentDeviceId];
+                localStorage.setItem(historyDataKey, JSON.stringify(state.historyDataByDevice));
+                renderHistoryDeviceSelector();
+                updateChart();
+            }
+        }
+
+        function exportCsv() {
+            const currentHistoryData = state.historyDataByDevice[state.currentDeviceId] || [];
+            if (currentHistoryData.length === 0) {
+                alert('当前设备没有数据可导出');
+                return;
+            }
+            const deviceName = state.devices.find(d => d.id === state.currentDeviceId)?.name || 'device';
+            const headers = ['时间', '设备', '温度(°C)', '湿度(%)'];
+            const rows = currentHistoryData.map(d => {
+                const recordDeviceName = state.devices.find(dev => dev.id === (d.deviceId || state.currentDeviceId))?.name || (d.deviceId || state.currentDeviceId);
+                return [
+                    new Date(d.timestamp).toLocaleString('zh-CN'),
+                    recordDeviceName,
+                    d.temperature.toFixed(1),
+                    d.humidity.toFixed(1)
+                ];
+            });
+            const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+            const blob = new Blob(['\uFEFF' + csv], {type: 'text/csv;charset=utf-8;'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `agrisense_${deviceName}_history_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('agrisense_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                state.autoRefresh = settings.autoRefresh || false;
+                if (state.autoRefresh) {
+                    document.getElementById('autoRefreshToggle').classList.add('active');
+                    document.getElementById('autoRefreshStatus').textContent = '已开启';
+                    state.autoRefreshInterval = setInterval(refreshData, 10000);
+                }
+            }
+        }
+
+        // Device Management
+        function renderDevicesList() {
+            const container = document.getElementById('devicesList');
+            if (state.devices.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-hdd" style="font-size:3rem; opacity:0.3;"></i><p style="margin-top:1rem;">暂无设备</p></div>';
+                return;
+            }
+            const now = new Date();
+            container.innerHTML = state.devices.map(d => {
+                const isOnline = d.lastActive ? (now - new Date(d.lastActive) < 5 * 60 * 1000) : false;
+                const statusClass = isOnline ? 'online' : 'offline';
+                const statusText = isOnline ? '在线' : '离线';
+                const lastActiveText = d.lastActive ? new Date(d.lastActive).toLocaleString() : '从未活跃';
+                return `
+                <div class="device-card">
+                    <div class="device-header">
+                        <div>
+                            <div class="device-name">
+                                <i class="fas fa-hdd"></i> ${d.name}
+                                <span class="status-badge ${statusClass}" style="font-size:0.7rem; padding:0.1rem 0.5rem; border-radius:8px; margin-left:0.5rem;">
+                                    <i class="fas fa-circle" style="font-size:0.5rem; margin-right:3px;"></i> ${statusText}
+                                </span>
+                            </div>
+                            <div style="font-size:0.85rem; color:#666;">设备ID: ${d.id}</div>
+                            <div style="font-size:0.85rem; color:#666;">位置: ${d.location || '--'}</div>
+                            <div style="font-size:0.85rem; color:#666;">最后活跃: ${lastActiveText}</div>
+                        </div>
+                        <div class="device-actions">
+                            <button class="icon-btn" data-edit="${d.id}"><i class="fas fa-edit"></i></button>
+                            <button class="icon-btn danger" data-delete="${d.id}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+            container.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => openDeviceModal(btn.dataset.edit)));
+            container.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => deleteDevice(btn.dataset.delete)));
+        }
+
+        function populateDeviceCropOptions() {
+            const select = document.getElementById('deviceCropId');
+            select.innerHTML = '<option value="">-- 请选择作物 --</option>' + state.crops.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('');
+        }
+
+        function updateGrowthStageOptions() {
+            const cropId = document.getElementById('deviceCropId').value ? parseInt(document.getElementById('deviceCropId').value) : null;
+            const select = document.getElementById('deviceGrowthStage');
+            const crop = state.crops.find(c => c.id === cropId);
+            select.innerHTML = '<option value="">-- 请选择阶段 --</option>';
+            if (crop && crop.stages) {
+                select.innerHTML += crop.stages.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+            }
+        }
+
+        let editingDeviceId = null;
+        function openDeviceModal(id = null) {
+            editingDeviceId = id;
+            document.getElementById('deviceModalTitle').textContent = id ? '编辑设备' : '添加设备';
+            document.getElementById('deviceForm').reset();
+            populateDeviceCropOptions();
+            if (id) {
+                const d = state.devices.find(x => x.id === id);
+                if (d) {
+                    document.getElementById('deviceName').value = d.name;
+                    document.getElementById('deviceLocation').value = d.location || '';
+                    document.getElementById('deviceCropId').value = d.cropId || '';
+                    updateGrowthStageOptions();
+                    if (d.growthStage) document.getElementById('deviceGrowthStage').value = d.growthStage;
+                }
+            }
+            document.getElementById('deviceModal').classList.add('active');
+        }
+
+        function closeDeviceModal() {
+            document.getElementById('deviceModal').classList.remove('active');
+            editingDeviceId = null;
+        }
+
+        async function saveDevice(e) {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('deviceName').value,
+                location: document.getElementById('deviceLocation').value,
+                cropId: document.getElementById('deviceCropId').value ? parseInt(document.getElementById('deviceCropId').value) : null,
+                growthStage: document.getElementById('deviceGrowthStage').value || null
+            };
+            try {
+                const res = await fetch(editingDeviceId ? `/api/devices/${editingDeviceId}` : '/api/devices', {
+                    method: editingDeviceId ? 'PUT' : 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    closeDeviceModal();
+                    await loadDevices();
+                } else alert('保存失败');
+            } catch (e) { alert('保存失败'); }
+        }
+
+        async function deleteDevice(id) {
+            if (!confirm('确定要删除此设备吗？')) return;
+            try {
+                const res = await fetch(`/api/devices/${id}`, {method: 'DELETE'});
+                if (res.ok) {
+                    if (state.currentDeviceId === id) state.currentDeviceId = "1";
+                    await loadDevices();
+                } else alert('删除失败');
+            } catch (e) { alert('删除失败'); }
+        }
+
+        // Crop Management
+        function renderCropsList() {
+            const container = document.getElementById('cropsList');
+            if (state.crops.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-leaf" style="font-size:3rem; opacity:0.3;"></i><p style="margin-top:1rem;">暂无作物</p></div>';
+                return;
+            }
+            container.innerHTML = state.crops.map(c => `
+                <div class="crop-card">
+                    <div class="crop-header">
+                        <div>
+                            <div class="crop-name">
+                                <span>${c.icon || '🌱'}</span> ${c.name}
+                                ${c.isDefault ? '<span style="font-size:0.7rem; background:#e8f5e9; color:#2e7d32; padding:0.1rem 0.5rem; border-radius:8px; margin-left:0.5rem;">默认</span>' : ''}
+                            </div>
+                            <div style="font-size:0.85rem; color:#666;">${c.description || '暂无描述'}</div>
+                            ${c.specialNotes ? `<div style="font-size:0.8rem; color:#ff9800; margin-top:0.25rem;">⚠ ${c.specialNotes}</div>` : ''}
+                        </div>
+                        <div class="crop-actions">
+                            <button class="icon-btn" data-edit-crop="${c.id}"><i class="fas fa-edit"></i></button>
+                            <button class="icon-btn danger" data-delete-crop="${c.id}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    ${c.stages && c.stages.length > 0 ? `
+                        <div style="margin-top:0.75rem;">
+                            <h4 style="font-size:0.9rem; margin-bottom:0.5rem; color:#33691e;">生长阶段 (${c.stages.length}):</h4>
+                            <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+                                ${c.stages.map(s => `
+                                    <div style="background:#f1f8e9; padding:0.25rem 0.75rem; border-radius:12px; font-size:0.8rem;">
+                                        ${s.name} (${s.optimalTempMin}-${s.optimalTempMax}°C / ${s.optimalHumidityMin}-${s.optimalHumidityMax}%)
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+            container.querySelectorAll('[data-edit-crop]').forEach(btn => btn.addEventListener('click', () => openCropModal(parseInt(btn.dataset.editCrop))));
+            container.querySelectorAll('[data-delete-crop]').forEach(btn => btn.addEventListener('click', () => deleteCrop(parseInt(btn.dataset.deleteCrop))));
+        }
+
+        let editingCropId = null;
+        function openCropModal(id = null) {
+            editingCropId = id;
+            document.getElementById('cropModalTitle').textContent = id ? '编辑作物' : '添加作物';
+            document.getElementById('cropForm').reset();
+            document.getElementById('stagesContainer').innerHTML = '';
+            addStageForm();
+            if (id) {
+                const crop = state.crops.find(x => x.id === id);
+                if (crop) {
+                    document.getElementById('cropName').value = crop.name;
+                    document.getElementById('cropIcon').value = crop.icon || '';
+                    document.getElementById('cropDescription').value = crop.description || '';
+                    document.getElementById('cropSpecialNotes').value = crop.specialNotes || '';
+                    document.getElementById('cropIsDefault').checked = crop.isDefault;
+                    document.getElementById('stagesContainer').innerHTML = '';
+                    if (crop.stages && crop.stages.length > 0) {
+                        crop.stages.forEach(s => addStageForm(s));
+                    } else addStageForm();
+                }
+            }
+            document.getElementById('cropModal').classList.add('active');
+        }
+
+        function closeCropModal() {
+            document.getElementById('cropModal').classList.remove('active');
+            editingCropId = null;
+        }
+
+        function addStageForm(stage = null) {
+            const container = document.getElementById('stagesContainer');
+            const index = container.children.length;
+            const div = document.createElement('div');
+            div.className = 'stage-item';
+            div.innerHTML = `
+                <div class="stage-header">
+                    <input type="text" placeholder="阶段名称" class="stage-name" style="flex:1; margin-right:0.5rem; border:1px solid #e0e0e0; padding:0.25rem 0.5rem; border-radius:4px;" value="${stage ? stage.name : ''}">
+                    <button type="button" class="btn btn-danger remove-stage" style="padding:0.25rem 0.5rem; font-size:0.8rem;"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="input-row" style="margin-top:0.5rem;">
+                    <div class="input-field"><label style="font-size:0.8rem;">最低温度</label><input type="number" step="0.1" class="min-temp" value="${stage ? stage.minTemp : 10}"></div>
+                    <div class="input-field"><label style="font-size:0.8rem;">最适最低</label><input type="number" step="0.1" class="optimal-temp-min" value="${stage ? stage.optimalTempMin : 18}"></div>
+                    <div class="input-field"><label style="font-size:0.8rem;">最适最高</label><input type="number" step="0.1" class="optimal-temp-max" value="${stage ? stage.optimalTempMax : 28}"></div>
+                    <div class="input-field"><label style="font-size:0.8rem;">最高温度</label><input type="number" step="0.1" class="max-temp" value="${stage ? stage.maxTemp : 35}"></div>
+                </div>
+                <div class="input-row" style="margin-top:0.5rem;">
+                    <div class="input-field"><label style="font-size:0.8rem;">最低湿度</label><input type="number" step="0.1" class="min-humidity" value="${stage ? stage.minHumidity : 40}"></div>
+                    <div class="input-field"><label style="font-size:0.8rem;">最适最低</label><input type="number" step="0.1" class="optimal-humidity-min" value="${stage ? stage.optimalHumidityMin : 60}"></div>
+                    <div class="input-field"><label style="font-size:0.8rem;">最适最高</label><input type="number" step="0.1" class="optimal-humidity-max" value="${stage ? stage.optimalHumidityMax : 80}"></div>
+                    <div class="input-field"><label style="font-size:0.8rem;">最高湿度</label><input type="number" step="0.1" class="max-humidity" value="${stage ? stage.maxHumidity : 90}"></div>
+                </div>
+            `;
+            div.querySelector('.remove-stage').addEventListener('click', () => {
+                if (document.querySelectorAll('.stage-item').length > 1) div.remove();
+            });
+            container.appendChild(div);
+        }
+
+        async function saveCrop(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('cropName').value.trim();
+            if (!name) {
+                alert('请输入作物名称');
+                return;
+            }
+
+            const stages = [];
+            document.querySelectorAll('.stage-item').forEach((div, idx) => {
+                const stageName = div.querySelector('.stage-name').value.trim();
+                if (!stageName) return; // 跳过空阶段
+
+                const getFloat = (selector) => {
+                    const val = parseFloat(div.querySelector(selector).value);
+                    return isNaN(val) ? null : val;
+                };
+
+                stages.push({
+                    name: stageName,
+                    minTemp: getFloat('.min-temp'),
+                    optimalTempMin: getFloat('.optimal-temp-min'),
+                    optimalTempMax: getFloat('.optimal-temp-max'),
+                    maxTemp: getFloat('.max-temp'),
+                    minHumidity: getFloat('.min-humidity'),
+                    optimalHumidityMin: getFloat('.optimal-humidity-min'),
+                    optimalHumidityMax: getFloat('.optimal-humidity-max'),
+                    maxHumidity: getFloat('.max-humidity'),
+                    order: idx
+                });
+            });
+            const payload = {
+                name: name,
+                icon: document.getElementById('cropIcon').value,
+                description: document.getElementById('cropDescription').value,
+                specialNotes: document.getElementById('cropSpecialNotes').value,
+                isDefault: document.getElementById('cropIsDefault').checked,
+                stages
+            };
+            try {
+                const res = await fetch(editingCropId ? `/api/crops/${editingCropId}` : '/api/crops', {
+                    method: editingCropId ? 'PUT' : 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    closeCropModal();
+                    await loadCrops();
+                    await loadDevices();
+                } else alert('保存失败');
+            } catch (e) { alert('保存失败'); }
+        }
+
+        async function deleteCrop(id) {
+            const crop = state.crops.find(c => c.id === id);
+            if (crop && crop.isDefault) { alert('不能删除默认作物'); return; }
+            if (!confirm('确定要删除此作物吗？')) return;
+            try {
+                const res = await fetch(`/api/crops/${id}`, {method: 'DELETE'});
+                if (res.ok) { await loadCrops(); await loadDevices(); }
+                else alert('删除失败');
+            } catch (e) { alert('删除失败'); }
+        }
+    </script>
+</body>
+</html>
